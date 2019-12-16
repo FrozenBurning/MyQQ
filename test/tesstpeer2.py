@@ -1,26 +1,32 @@
 import sys
 import socket
+import time
 sys.path.append('../')
+
 import utility.connectiontool as ctl
+import Chatter.listener as listener
+import Chatter.sender as sender
+
 s = ctl.ConnectionTool()
 s.ConnectionInit("127.0.0.1",50000)
 
-listening_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-listening_socket.bind(("127.0.0.1",9876))
-listening_socket.listen(1)
+chatlisten = listener.ChatListener()
+chatlisten.port = 9876
+chatlisten.start()
 
 if s.Login("3017011552","net2019"):
     print("login!")
 
-IPlist = s.GetIp(["2017011552","3017011552"])
-
-p2psocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-if IPlist[0] != 'n':
-    p2psocket.connect((IPlist[0],9875))
-    p2psocket.send("hhh".encode())
+while True:
+    time.sleep(1.0)
+    IPlist = s.GetIp(["2017011552","3017011552"])
+    if IPlist[0] != 'n':
+        break
     
-    p2psocket.send("quit".encode())
-    p2psocket.close()
+chatsender = sender.ChatSender()
+chatsender.address = IPlist[0]
+chatsender.port = 9875
+chatsender.start()
 
-if s.Logout("2017011552"):
-    print("logout")
+# if s.Logout("3017011552"):
+#     print("logout")
