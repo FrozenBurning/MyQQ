@@ -3,6 +3,8 @@ import threading
 import os
 import json
 import time
+from Chatter.data_type import data
+
 
 LOCALHOST = '0.0.0.0'
 BUFFER_SIZE = 1024
@@ -36,23 +38,31 @@ class ChatListener(threading.Thread):
 
                 recv_header = json.loads(header)
                 print(recv_header)
-                res_name = recv_header['file_name']
-                res_size = recv_header['file_size']
-                
-                #ack
-                connection.send(bytes([1]))
-                num = res_size/1024.0
-                if num != int(num):
-                    num = int(num) +1
-                else:
-                    num = int(num)
 
-                for i in range(num):
-                    content = connection.recv(BUFFER_SIZE)
-                    total_data += content
-                
-                with open("11.png","wb") as f:
-                    f.write(total_data)
+                if recv_header['data_type']==data['text'].value:
+                    connection.send(bytes([1]))
+
+                    message = connection.recv(BUFFER_SIZE).decode()
+                    print("Recv: ", message,"from (",address,")")
+                    
+                elif recv_header['data_type'] == data['file'].value:
+                    res_name = recv_header['optional']['file_name']
+                    res_size = recv_header['optional']['file_size']
+
+                    #ack
+                    connection.send(bytes([1]))
+                    num = res_size/1024.0
+                    if num != int(num):
+                        num = int(num) +1
+                    else:
+                        num = int(num)
+
+                    for i in range(num):
+                        content = connection.recv(BUFFER_SIZE)
+                        total_data += content
+
+                    with open("11.png","wb") as f:
+                        f.write(total_data)
                     
                 
 

@@ -26,6 +26,8 @@ while True:
 chatsender = sender.ChatSender()
 chatsender.address = IPlist[0]
 chatsender.port = 9875
+chatsender.srcid = "3017011552"
+chatsender.desid = "2017011552"
 chatsender.start()
 
 # if s.Logout("3017011552"):

@@ -31,6 +31,8 @@ while True:
 chatsender = sender.ChatSender()
 chatsender.address = IPlist[1]
 chatsender.port = 9876
+chatsender.srcid = "2017011552"
+chatsender.desid = "3017011552"
 chatsender.start()
 
 
