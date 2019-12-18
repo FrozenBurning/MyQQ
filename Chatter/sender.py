@@ -3,7 +3,7 @@ import threading
 import os
 import json
 import time
-from Chatter.data_type import data
+from Chatter.data_type import *
 
 class ChatSender(threading.Thread):
     
@@ -13,6 +13,8 @@ class ChatSender(threading.Thread):
         self.port = None
         self.srcid = None
         self.desid = None
+        self.worker_type = worker_type['sender'].value
+        self.buffer = []
 
     def run(self):
         send_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -27,33 +29,61 @@ class ChatSender(threading.Thread):
         #         Exception
         #     if message.lower() == "quit":
         #         break
-        file_path = '/home/royubuntu/ComputerNetwork/MyQQ/alabama.jpg'
         #test file sending
+        # while True:
+        #     command = input("Send text or image (T) or (I) >")
+        #     if command.lower() == 't':
+        #         message = input("Your message > ")
+        #         send_socket.send(json.dumps(self.header_data_wrapper(data['text'].value)).encode())  
+        #         reply = send_socket.recv(1)
+
+        #         if ord(reply) == 1:
+        #             print('header has been recved!')          
+
+        #         send_socket.sendall(message.encode())    
+        #     elif command.lower() == 'i':
+        #         send_socket.send(json.dumps(self.header_data_wrapper(data['file'].value,file_path)).encode())
+        #         reply = send_socket.recv(1)
+        #         # while reply!=1:
+        #         #     send_socket.send(json.dumps(header_data_wrapper()))
+        #         #     reply = send_socket.recv(1)
+        #         # header recved
+        #         if ord(reply) == 1:
+        #             print('header has been recved!')
+
+        #         f = open(file_path,'rb')
+        #         content = f.read()
+        #         send_socket.sendall(content)
+
         while True:
-            command = input("Send text or image (T) or (I) >")
-            if command.lower() == 't':
-                message = input("Your message > ")
-                send_socket.send(json.dumps(self.header_data_wrapper(data['text'].value)).encode())  
-                reply = send_socket.recv(1)
+            if len(self.buffer) == 0:
+                continue
+            
+            current_msg = self.buffer.pop()
+            send_socket.send(json.dumps(self.header_data_wrapper(current_msg['data_type'],current_msg['data'])).encode())  
+            reply = send_socket.recv(1)
 
-                if ord(reply) == 1:
-                    print('header has been recved!')          
-
-                send_socket.sendall(message.encode())    
-            elif command.lower() == 'i':
-                send_socket.send(json.dumps(self.header_data_wrapper(data['file'].value,file_path)).encode())
-                reply = send_socket.recv(1)
-                # while reply!=1:
-                #     send_socket.send(json.dumps(header_data_wrapper()))
-                #     reply = send_socket.recv(1)
-                # header recved
-                if ord(reply) == 1:
-                    print('header has been recved!')
-
-                f = open(file_path,'rb')
+            if ord(reply) == 1:
+                print('header has been recved!')     #TODO:
+            
+            if current_msg['data_type'] == data['file'].value:
+                f = open(current_msg['data'],'rb')
                 content = f.read()
                 send_socket.sendall(content)
+                f.close()
+            elif current_msg['data_type'] == data['text'].value:
+                send_socket.sendall(current_msg['data'].encode())
+            else:# command
+                if current_msg['data']['command_type']== command_type['disconnect'].value:
+                    send_socket.close()
+                    return
+                    
+
+                
     
+    def send(self, msg):
+        self.buffer.append(msg)
+
     def header_data_wrapper(self,data_type,file_path=None):
         more = {}
         if data_type == data['file'].value and file_path != None:

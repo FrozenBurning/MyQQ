@@ -6,13 +6,18 @@ sys.path.append('../')
 import utility.connectiontool as ctl
 import Chatter.listener as listener
 import Chatter.sender as sender
+from Chatter.router import router
+from Chatter.data_type import *
+
+r = router()
+r.start()
 
 
 s = ctl.ConnectionTool()
 s.ConnectionInit("0.0.0.0",50001)
 
 
-chatlisten = listener.ChatListener()
+chatlisten = listener.ChatListener(r)
 chatlisten.port = 9875
 chatlisten.start()
 # listening_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -36,6 +41,6 @@ chatsender.desid = "3017011552"
 chatsender.start()
 
 
-
+r.attach(chatsender)
 # if s.Logout("2017011552"):
 #     print("logout")

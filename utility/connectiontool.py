@@ -5,6 +5,7 @@ class ConnectionTool:
         self.ServerIP = "166.111.140.57"
         self.ServerPort = 8000
         self.SocketHandler = None
+        self.desid = 0
 
     def ConnectionInit(self, host,port):
         self.host = host
@@ -19,8 +20,8 @@ class ConnectionTool:
         reply = self.SocketHandler.recv(512)
         return reply.decode()
 
-    def Login(self,StudentNum,Password):
-        command = StudentNum +'_'+Password;
+    def Login(self,StudentNum):
+        command = StudentNum +'_net2019'
         reply=self.SendCommand(command)
         if reply=="lol":
             return True
