@@ -7,15 +7,17 @@ from Chatter.data_type import *
 
 
 LOCALHOST = '0.0.0.0'
+LOCALPORT = 9876
 BUFFER_SIZE = 1024
 
 class ChatListener(threading.Thread):
 
         def __init__(self,router):
             threading.Thread.__init__(self)
-            self.port = None
+            self.port =LOCALPORT
             self.worker_type = worker_type['listener'].value
             self.router = router
+            self.daemon=True
 
         def run(self):
             listen_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -23,7 +25,7 @@ class ChatListener(threading.Thread):
             listen_socket.listen(10)
             while True:
                 connection, address = listen_socket.accept()
-                p = threading.Thread(target=self.recv_data,args=(connection,address,self.router))
+                p = threading.Thread(target=self.recv_data,daemon=True,args=(connection,address,self.router))
                 p.start()
 
 

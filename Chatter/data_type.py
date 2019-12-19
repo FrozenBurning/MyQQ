@@ -17,4 +17,5 @@ class command_type(Enum):
     establish = 2
     disconnect = 3
     logout = 4
+    query=5
 

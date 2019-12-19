@@ -57,26 +57,32 @@ class ChatSender(threading.Thread):
 
         while True:
             if len(self.buffer) == 0:
+                time.sleep(0.05)
                 continue
             
             current_msg = self.buffer.pop()
-            send_socket.send(json.dumps(self.header_data_wrapper(current_msg['data_type'],current_msg['data'])).encode())  
-            reply = send_socket.recv(1)
 
-            if ord(reply) == 1:
-                print('header has been recved!')     #TODO:
-            
-            if current_msg['data_type'] == data['file'].value:
-                f = open(current_msg['data'],'rb')
-                content = f.read()
-                send_socket.sendall(content)
-                f.close()
-            elif current_msg['data_type'] == data['text'].value:
-                send_socket.sendall(current_msg['data'].encode())
-            else:# command
-                if current_msg['data']['command_type']== command_type['disconnect'].value:
+            if current_msg['data_type'] == data['command'].value:
+                if current_msg['optional']['command_type']== command_type['disconnect'].value or \
+                    current_msg['optional']['command_type']== command_type['logout'].value:
                     send_socket.close()
+                    
                     return
+            else:#messaging
+                send_socket.send(json.dumps(self.header_data_wrapper(current_msg['data_type'],current_msg['data'])).encode())  
+                reply = send_socket.recv(1)
+
+                if ord(reply) == 1:
+                    print('header has been recved!')     #TODO:
+
+                if current_msg['data_type'] == data['file'].value:
+                    f = open(current_msg['data'],'rb')
+                    content = f.read()
+                    send_socket.sendall(content)
+                    f.close()
+                elif current_msg['data_type'] == data['text'].value:
+                    send_socket.sendall(current_msg['data'].encode())
+
                     
 
                 

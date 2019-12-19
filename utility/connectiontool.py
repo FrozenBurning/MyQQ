@@ -7,7 +7,7 @@ class ConnectionTool:
         self.SocketHandler = None
         self.desid = 0
 
-    def ConnectionInit(self, host,port):
+    def ConnectionInit(self, host=None,port=None):
         self.host = host
         self.port = port
         self.SocketHandler = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -36,10 +36,7 @@ class ConnectionTool:
         else:
             return False
     
-    def GetIp(self,StudentNumList):
-        IPlist = []
-        for i, stdnum in enumerate(StudentNumList):
-            tmpIP = self.SendCommand('q'+stdnum)
-            IPlist.append(tmpIP)
-        return IPlist    
+    def GetIp(self,StudentNum):
+        return self.SendCommand('q'+StudentNum)
+        
         
