@@ -1,6 +1,8 @@
 from Chatter.router import *
+from GUI.mainwindow import *
 
 class user():
+    #main thread
     def __init__(self):
         # self.contacts = set()
         self.myid = None
@@ -9,13 +11,36 @@ class user():
         self.database = None
         
         self.r = router()
-        self.watchdog = ChatListener(self.r)
-        self.gui = gui(self.r)
-        self.r.attach(self.gui)
+        # self.gui_worker=None
+        # self.gui = MainWindow(self)
 
-        self.r.start()
-        self.watchdog.start()
-        self.gui.start()
+        # self.watchdog = ChatListener(self.r)
+        # self.gui_worker = gui(self.r,self.gui)
+        # self.r.attach(self.gui_worker)
+
+        app = QtWidgets.QApplication(sys.argv)
+        dialog=logindialog()
+        if  dialog.exec_()==QtWidgets.QDialog.Accepted:
+            self.myid = dialog.lineEdit_account.text()
+            self.gui = MainWindow(self)   
+            self.gui.show()
+
+
+            self.watchdog = ChatListener(self.r)
+            self.gui_worker = gui_worker(self.r,self.gui)
+            self.r.attach(self.gui_worker)
+            self.gui.gui_worker = self.gui_worker         
+
+            
+            self.r.start()
+            self.watchdog.start()
+            self.gui_worker.start()
+
+            self.login(dialog.lineEdit_account.text())
+
+            sys.exit(app.exec_())
+
+
 
     def login(self,studentid):
         self.myid = studentid
@@ -30,29 +55,29 @@ class user():
         #then update contacts
         
     def isOnline(self,friendid):
-        if self.gui.get_contact(friendid) != 'n' and self.gui.get_contact(friendid) != None:
+        if self.gui_worker.get_contact(friendid) != 'n' and self.gui_worker.get_contact(friendid) != None:
             return True
         else:
             return False
 
     def addfriends(self,friendid):
         self.query(friendid)
-        self.gui.updating_contacts = True
-        while self.gui.updating_contacts:
+        self.gui_worker.updating_contacts = True
+        while self.gui_worker.updating_contacts:
             pass
-        return self.gui.get_contact(friendid)
+        return self.gui_worker.get_contact(friendid)
         
 
     def send_text(self, text,desid):
         if self.isOnline(desid):
-            self.r.recv(self.gui.get_contact(desid),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=desid,command_tp=command_type['establish'].value)
+            self.r.recv(self.gui_worker.get_contact(desid),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=desid,command_tp=command_type['establish'].value)
             self.r.recv(text,worker_type['gui'].value,worker_type['sender'].value,data['text'].value,desid)
             return True
         else:
             return False
     def send_file(self,path,desid):
         if self.isOnline(desid):
-            self.r.recv(self.gui.get_contact(desid),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=desid,command_tp=command_type['establish'].value)
+            self.r.recv(self.gui_worker.get_contact(desid),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=desid,command_tp=command_type['establish'].value)
             self.r.recv(path,worker_type['gui'].value,worker_type['sender'].value,data['file'].value,desid)
             return True
         else:
@@ -66,8 +91,8 @@ class user():
         pass    
 
 
-class gui(threading.Thread):
-    def __init__(self,router):
+class gui_worker(threading.Thread):
+    def __init__(self,router,gui):
         threading.Thread.__init__(self)
         self.contacts = {}
         self.router = router
@@ -75,6 +100,7 @@ class gui(threading.Thread):
         self.updating_contacts = False
         self.buffer = []
         self.desid = 1
+        # self.mode = data['text'].value
     
     def run(self):
         while True:
