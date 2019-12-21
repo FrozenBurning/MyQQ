@@ -98,7 +98,10 @@ class router(threading.Thread):
                 self.detach(task)
 
     def inner_data_wrapper(self, data2trans, sender_type,recver_type,data_type,destination=None,command_tp=None):
-        more = {}
+        more = {
+            'destination':None,
+            'command_type':None
+        }
         if recver_type == worker_type['sender'].value:
             more['destination']=destination
         if data_type == data['command'].value:

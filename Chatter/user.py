@@ -125,10 +125,20 @@ class gui_worker(threading.Thread):
                 continue
                 
             current_msg = self.buffer.pop()
-
+            if current_msg['optional']['command_type'] == command_type['logout'].value:
+                return
+                
+            # I have not known my friend
+            if not self.get_contact(current_msg['sender_type']):
+                self.updating_contacts = True
+                self.router.recv(current_msg['sender_type'],worker_type['gui'].value,worker_type['toserver'].value,data['command'].value,command_tp=command_type['query'].value)
+                while self.updating_contacts:
+                    pass
+                self.guiwindow.update_contacts()
 
             #distribute msg to user interface
             if current_msg['data_type'] == data['file'].value:
+                
                 if self.recent_msg.get(current_msg['sender_type']) == None:
                     self.recent_msg[current_msg['sender_type']]=[]
                 self.recent_msg[current_msg['sender_type']].append(current_msg)

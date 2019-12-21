@@ -71,6 +71,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 new.setForeground(QtGui.QBrush(QtCore.Qt.red))
             else:
                 new.setForeground(QtGui.QBrush(QtCore.Qt.green))
+                # self.user_interface.informfriend(ip)
             self.ui.contacts.addItem(new)
             if id==self.gui_worker.current_des:
                 new.setSelected(True)
