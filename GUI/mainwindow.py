@@ -115,7 +115,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         for msg in self.gui_worker.recent_msg[self.gui_worker.current_des]:
             # msg sent          
-            if isinstance((msg['sender_type']),str):
+            if not isinstance((msg['sender_type']),str):
                 new = QtWidgets.QListWidgetItem(parent=self.ui.message)
                 new.setText(msg['data'])
                 new.setTextAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
