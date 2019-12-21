@@ -57,7 +57,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Text</string>
+     <string>text</string>
     </property>
     <property name="checkable">
      <bool>true</bool>
@@ -76,7 +76,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>File</string>
+     <string>file</string>
     </property>
     <property name="checkable">
      <bool>true</bool>

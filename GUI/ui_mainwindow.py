@@ -69,8 +69,8 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.sendmsg.setText(_translate("MainWindow", "Send"))
-        self.text_send.setText(_translate("MainWindow", "Text"))
-        self.file_send.setText(_translate("MainWindow", "File"))
+        self.text_send.setText(_translate("MainWindow", "text"))
+        self.file_send.setText(_translate("MainWindow", "file"))
         self.video_send.setText(_translate("MainWindow", "video"))
         self.pushButton_5.setText(_translate("MainWindow", "PushButton"))
         self.title.setText(_translate("MainWindow", "Contacts"))

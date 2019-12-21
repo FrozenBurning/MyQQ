@@ -13,6 +13,7 @@ class router(threading.Thread):
         self._subscribers = set()
         self.sok2server = ConnectionTool()
         self.working = True
+        self.myid = None
 
     def run(self):
         self.sok2server.ConnectionInit()
@@ -61,6 +62,7 @@ class router(threading.Thread):
                     newsender = ChatSender()
                     newsender.address = current_msg['data']
                     newsender.port = LOCALPORT
+                    newsender.srcid = self.myid
                     newsender.desid = current_msg['optional']['destination']
                     newsender.start()
                     self.attach(newsender)
@@ -78,7 +80,10 @@ class router(threading.Thread):
                         subscriber.send(current_msg)
             
             elif current_msg['recver_type']==worker_type['gui'].value:
-                print(current_msg['data']) #send msg to gui
+                # print(current_msg['data']) #send msg to gui
+                for subscriber in self._subscribers:
+                    if subscriber.worker_type == worker_type['gui'].value:
+                        subscriber.send(current_msg)
         self.messagepool.task_done()
 
     @contextmanager

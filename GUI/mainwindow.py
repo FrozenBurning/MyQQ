@@ -21,10 +21,33 @@ class MainWindow(QtWidgets.QMainWindow):
         self.functional_group.addButton(self.ui.video_send,2)
         self.functional_group.addButton(self.ui.pushButton_5,3)
 
+
+        self.ui.contacts.setStyleSheet("QListWidget{border:1px solid gray; color:black; }"
+                        "QListWidget::Item{padding-top:20px; padding-bottom:4px; }"
+                        "QListWidget::Item:hover{background:skyblue; }"
+                        "QListWidget::Item:selected:!active{border-width:0px; background:lightgreen; }"
+                        )
+        self.ui.contacts.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+
+        self.ui.message.setStyleSheet("QListWidget{border:1px solid gray; color:black; }"
+                        "QListWidget::Item{padding-top:20px; padding-bottom:4px; }"
+                        "QListWidget::Item:hover{background:skyblue; }"
+                        )
+        self.ui.message.setSelectionMode(QtWidgets.QAbstractItemView.NoSelection)
         #slot
         self.ui.addfriend.clicked.connect(self.addfriend)
         self.functional_group.buttonClicked.connect(self.functionalchange)
+        self.ui.sendmsg.clicked.connect(self.send_msg)
+        self.ui.contacts.itemSelectionChanged.connect(self.getcontactitems)
 
+
+
+    def getcontactitems(self):
+        tmp=self.ui.contacts.selectedItems()
+        if len(tmp) != 0:
+            self.gui_worker.current_des=tmp[-1].text()
+            print(self.gui_worker.current_des)
+        self.update_msg_window()
 
     def closeEvent(self, QCloseEvent):
         self.user_interface.logout()
@@ -49,12 +72,65 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 new.setForeground(QtGui.QBrush(QtCore.Qt.green))
             self.ui.contacts.addItem(new)
+            if id==self.gui_worker.current_des:
+                new.setSelected(True)
+        
     
     def functionalchange(self,button):
         self.current_datatype = data[button.text()].value
     
     def send_msg(self):
-        pass#TODO: 
+        #TODO: 
+        if self.gui_worker.current_des == None:
+            return
+        if len(self.ui.editor.toPlainText()) == 0:
+            return
+        if self.current_datatype == data['text'].value:
+            self.user_interface.send_text(self.ui.editor.toPlainText(),self.gui_worker.current_des)
+        elif self.current_datatype == data['file'].value:
+            file_path = self.selectfile()
+            if file_path != None:
+                self.user_interface.send_file(file_path,self.gui_worker.current_des)
+        
+        self.update_msg_window()
+
+    def selectfile(self):
+        new = QtWidgets.QFileDialog(self)
+        new.setWindowTitle("Select File")
+        new.setFileMode(QtWidgets.QFileDialog.ExistingFile)
+        new.setViewMode(QtWidgets.QFileDialog.Detail)
+
+        filename = []
+        if new.exec_():
+            filename = new.selectedFiles()
+        
+        if len(filename) == 0:
+            return None
+        else:
+            return filename[-1]
+
+    def update_msg_window(self):
+        self.ui.message.clear()
+        if self.gui_worker.recent_msg.get(self.gui_worker.current_des) == None:
+            return
+        for msg in self.gui_worker.recent_msg[self.gui_worker.current_des]:
+            # msg sent          
+            if isinstance((msg['sender_type']),str):
+                new = QtWidgets.QListWidgetItem(parent=self.ui.message)
+                new.setText(msg['data'])
+                new.setTextAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
+                new.setBackground(QtGui.QBrush(QtCore.Qt.darkGreen))
+            else:
+                new = QtWidgets.QListWidgetItem(parent=self.ui.message)
+                new.setText(msg['data'])
+                new.setTextAlignment(QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+                new.setBackground(QtGui.QBrush(QtCore.Qt.white))
+            self.ui.message.addItem(new)
+        
+        self.ui.message.scrollToBottom()
+
+
+
 
 
     

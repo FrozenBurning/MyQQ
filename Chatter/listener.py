@@ -44,7 +44,7 @@ class ChatListener(threading.Thread):
                     new_socket.send(bytes([1]))
                     message = new_socket.recv(BUFFER_SIZE).decode()
                     print("Recv: ", message,"from (",client_info,")")
-                    router.recv(message,self.worker_type,worker_type['gui'].value,data['text'].value)       
+                    router.recv(message,recv_header['sender_id'],worker_type['gui'].value,data['text'].value)       
                 elif recv_header['data_type'] == data['file'].value:
                     res_name = recv_header['optional']['file_name']
                     res_size = recv_header['optional']['file_size']
@@ -58,10 +58,11 @@ class ChatListener(threading.Thread):
                     for i in range(num):
                         content = new_socket.recv(BUFFER_SIZE)
                         total_data += content
-                    with open("recved_"+recv_header['optional']['file_name'],"wb") as f:
+                    filepath = "recved_"+recv_header['optional']['file_name']
+                    with open(filepath,"wb") as f:
                         f.write(total_data)
 
-                    router.recv(total_data,self.worker_type,worker_type['gui'].value,data['file'].value)                           
+                    router.recv(filepath,recv_header['sender_id'],worker_type['gui'].value,data['file'].value)                           
             new_socket.close() #TODO: 
             
                 

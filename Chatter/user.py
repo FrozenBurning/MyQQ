@@ -6,7 +6,6 @@ class user():
     def __init__(self):
         # self.contacts = set()
         self.myid = None
-        self.recent_msg = None
 
         self.database = None
         
@@ -17,6 +16,7 @@ class user():
         # self.watchdog = ChatListener(self.r)
         # self.gui_worker = gui(self.r,self.gui)
         # self.r.attach(self.gui_worker)
+
 
         app = QtWidgets.QApplication(sys.argv)
         dialog=logindialog()
@@ -35,15 +35,22 @@ class user():
             self.r.start()
             self.watchdog.start()
             self.gui_worker.start()
+            # self.refresher = threading.Thread(name="uifresher",target=self.refresh,daemon=True)
+            # self.refresher.start()
 
             self.login(dialog.lineEdit_account.text())
 
             sys.exit(app.exec_())
 
+    def refresh(self):
+        while True:
+            time.sleep(0.1)
+            self.gui.update_msg_window()
 
 
     def login(self,studentid):
         self.myid = studentid
+        self.r.myid = studentid
         self.r.recv(self.myid,worker_type['gui'].value,worker_type['toserver'].value,data['command'].value,command_tp=command_type['login'].value)
 
     def logout(self):
@@ -72,6 +79,9 @@ class user():
         if self.isOnline(desid):
             self.r.recv(self.gui_worker.get_contact(desid),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=desid,command_tp=command_type['establish'].value)
             self.r.recv(text,worker_type['gui'].value,worker_type['sender'].value,data['text'].value,desid)
+            if self.gui_worker.recent_msg.get(desid) == None:
+                self.gui_worker.recent_msg[desid] = []
+            self.gui_worker.recent_msg[desid].append(self.r.inner_data_wrapper(text,worker_type['gui'].value,worker_type['sender'].value,data['text'].value,desid))
             return True
         else:
             return False
@@ -79,6 +89,10 @@ class user():
         if self.isOnline(desid):
             self.r.recv(self.gui_worker.get_contact(desid),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=desid,command_tp=command_type['establish'].value)
             self.r.recv(path,worker_type['gui'].value,worker_type['sender'].value,data['file'].value,desid)
+            
+            if self.gui_worker.recent_msg.get(desid) == None:
+                self.gui_worker.recent_msg[desid] = []
+            self.gui_worker.recent_msg[desid].append(self.r.inner_data_wrapper(path,worker_type['gui'].value,worker_type['sender'].value,data['file'].value,desid))
             return True
         else:
             return False
@@ -100,7 +114,9 @@ class gui_worker(threading.Thread):
         self.updating_contacts = False
         self.buffer = []
         self.desid = 1
-        # self.mode = data['text'].value
+        self.current_des = None
+        self.recent_msg = {}#dict of list
+        self.guiwindow=gui
     
     def run(self):
         while True:
@@ -113,9 +129,15 @@ class gui_worker(threading.Thread):
 
             #distribute msg to user interface
             if current_msg['data_type'] == data['file'].value:
-                pass
+                if self.recent_msg.get(current_msg['sender_type']) == None:
+                    self.recent_msg[current_msg['sender_type']]=[]
+                self.recent_msg[current_msg['sender_type']].append(current_msg)
+                self.guiwindow.update_msg_window()
             elif current_msg['data_type'] == data['text'].value:
-                pass
+                if self.recent_msg.get(current_msg['sender_type']) == None:
+                    self.recent_msg[current_msg['sender_type']]=[]
+                self.recent_msg[current_msg['sender_type']].append(current_msg)
+                self.guiwindow.update_msg_window()
             else:#command
                 if current_msg['optional']['command_type']==command_type['logout'].value:
                     return
