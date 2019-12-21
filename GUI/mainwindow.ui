@@ -147,7 +147,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QPushButton" name="tool">
+   <widget class="QPushButton" name="removefriend">
     <property name="geometry">
      <rect>
       <x>0</x>
@@ -157,7 +157,10 @@
      </rect>
     </property>
     <property name="text">
-     <string>Tool</string>
+     <string>工具</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="addfriend">
@@ -170,7 +173,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Add</string>
+     <string>添加</string>
     </property>
    </widget>
   </widget>

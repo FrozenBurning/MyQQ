@@ -52,6 +52,18 @@ class router(threading.Thread):
                         subscriber.update_contacts(current_msg['data'],ipwanted)
             
             # to specific sender
+            elif current_msg['optional']['command_type'] == command_type['hi'].value:
+                for subscriber in self._subscribers:
+                    if subscriber.desid == current_msg['optional']['destination']:
+                        subscriber.send(current_msg)
+
+            elif current_msg['optional']['command_type']==command_type['reject'].value:
+                for subscriber in self._subscribers:
+                    if subscriber.desid == current_msg['optional']['destination']:
+                        subscriber.send(current_msg)
+                        self.detach(subscriber)
+                        break
+
             elif current_msg['optional']['command_type'] == command_type['establish'].value:
                 hasEstablished = False
                 for subscriber in self._subscribers:
@@ -71,6 +83,14 @@ class router(threading.Thread):
                     if subscriber.desid==current_msg['optional']['destination']:
                         subscriber.send(current_msg)
                         self.detach(subscriber)
+            elif current_msg['data']==str(command_type['hi'].value):
+                for subscriber in self._subscribers:
+                    if subscriber.worker_type == worker_type['gui'].value:
+                        subscriber.send(current_msg)
+            elif current_msg['data']==str(command_type['reject'].value):
+                for subscriber in self._subscribers:
+                    if subscriber.worker_type == worker_type['gui'].value:
+                        subscriber.send(current_msg)
 
         # messaging
         else:

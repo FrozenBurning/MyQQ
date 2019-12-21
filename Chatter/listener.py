@@ -63,6 +63,13 @@ class ChatListener(threading.Thread):
                         f.write(total_data)
 
                     router.recv(filepath,recv_header['sender_id'],worker_type['gui'].value,data['file'].value)                           
+                elif recv_header['data_type'] == data['command'].value:
+                    #ack
+                    new_socket.send(bytes([1]))
+                    command = new_socket.recv(BUFFER_SIZE).decode()
+                    print("Recv Command",command)
+                    router.recv(command,recv_header['sender_id'],worker_type['gui'].value,data['command'].value)
+            
             new_socket.close() #TODO: 
             
                 

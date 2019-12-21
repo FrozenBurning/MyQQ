@@ -66,8 +66,25 @@ class ChatSender(threading.Thread):
                 if current_msg['optional']['command_type']== command_type['disconnect'].value or \
                     current_msg['optional']['command_type']== command_type['logout'].value:
                     send_socket.close()
-                    
                     return
+                elif current_msg['optional']['command_type']==command_type['hi'].value:
+                    send_socket.send(json.dumps(self.header_data_wrapper(current_msg['data_type'],current_msg['data'])).encode())  
+                    reply = send_socket.recv(1)
+
+                    if ord(reply) == 1:
+                        print('header has been recved!')  
+                    send_socket.sendall(current_msg['data'].encode())
+                elif current_msg['optional']['command_type']==command_type['reject'].value:
+                    send_socket.send(json.dumps(self.header_data_wrapper(current_msg['data_type'],current_msg['data'])).encode())  
+                    reply = send_socket.recv(1)
+
+                    if ord(reply) == 1:
+                        print('header has been recved!') 
+                    send_socket.sendall(current_msg['data'].encode())
+                    send_socket.close()
+                    return
+
+
             else:#messaging
                 send_socket.send(json.dumps(self.header_data_wrapper(current_msg['data_type'],current_msg['data'])).encode())  
                 reply = send_socket.recv(1)
@@ -82,6 +99,7 @@ class ChatSender(threading.Thread):
                     f.close()
                 elif current_msg['data_type'] == data['text'].value:
                     send_socket.sendall(current_msg['data'].encode())
+                    
 
                     
 

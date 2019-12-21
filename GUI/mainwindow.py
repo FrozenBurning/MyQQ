@@ -67,11 +67,15 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         for (id,ip) in self.gui_worker.contacts.items():
             new = QtWidgets.QListWidgetItem(id,parent=self.ui.contacts)
-            if ip=='n':
-                new.setForeground(QtGui.QBrush(QtCore.Qt.red))
+            #unvertified friend
+            if ip[1] == False:
+                new.setForeground(QtGui.QBrush(QtCore.Qt.gray))
             else:
-                new.setForeground(QtGui.QBrush(QtCore.Qt.green))
-                # self.user_interface.informfriend(ip)
+                if ip[0]=='n':
+                    new.setForeground(QtGui.QBrush(QtCore.Qt.red))
+                else:
+                    new.setForeground(QtGui.QBrush(QtCore.Qt.green))
+                    # self.user_interface.informfriend(ip)
             self.ui.contacts.addItem(new)
             if id==self.gui_worker.current_des:
                 new.setSelected(True)
@@ -81,7 +85,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_datatype = data[button.text()].value
     
     def send_msg(self):
-        #TODO: 
+        if self.gui_worker.contacts[self.gui_worker.current_des][1] == False:
+            return
         if self.gui_worker.current_des == None:
             return
         if len(self.ui.editor.toPlainText()) == 0:
@@ -112,7 +117,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_msg_window(self):
         self.ui.message.clear()
-        if self.gui_worker.recent_msg.get(self.gui_worker.current_des) == None:
+        if self.gui_worker.recent_msg.get(self.gui_worker.current_des) == None \
+            or self.gui_worker.get_contact(self.gui_worker.current_des)[1] == False:
             return
         for msg in self.gui_worker.recent_msg[self.gui_worker.current_des]:
             # msg sent          
@@ -220,5 +226,42 @@ class addfrienddialog(QtWidgets.QDialog):
             QtWidgets.QMessageBox().information(self,"提示","Successfully Added!")
         
         self.accept()
+
+class confirmfrienddialog(QtWidgets.QDialog):
+    def __init__(self,gui_worker,desid):
+        super().__init__()
+        self.setWindowTitle('添加好友请求')
+        self.resize(160, 150)
+        self.setFixedSize(self.width(), self.height())
+        self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
+        self.interface = gui_worker
+        self.id2confirm = desid
+
+        ###### 设置界面控件
+        self.frame = QtWidgets.QFrame(self)
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.frame)
+
+        self.account = QtWidgets.QLabel()
+        self.account.setText("对方学号："+self.id2confirm)
+        self.verticalLayout.addWidget(self.account)
+ 
+        self.pushButton_enter = QtWidgets.QPushButton()
+        self.pushButton_enter.setText("接受")
+        self.verticalLayout.addWidget(self.pushButton_enter)
+ 
+        self.pushButton_quit = QtWidgets.QPushButton()
+        self.pushButton_quit.setText("拒绝")
+        self.verticalLayout.addWidget(self.pushButton_quit)
+
+        self.pushButton_enter.clicked.connect(self.on_pushButton_enter_clicked)
+        self.pushButton_quit.clicked.connect(self.close)
+
+    def on_pushButton_enter_clicked(self):
+        self.interface.confirmfriend(self.id2confirm)  
+        self.accept()
+
+    def close(self):
+        # self.interface.rejectfriend(self.id2confirm)
+        self.reject()
 
 

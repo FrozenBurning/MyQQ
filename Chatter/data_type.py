@@ -18,4 +18,6 @@ class command_type(Enum):
     disconnect = 3
     logout = 4
     query=5
+    hi = 6
+    reject = 7
 
