@@ -72,6 +72,3 @@ class ChatListener(threading.Thread):
             
             new_socket.close() #TODO: 
             
-                
-
-
