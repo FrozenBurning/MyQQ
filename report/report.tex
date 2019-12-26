@@ -18,6 +18,8 @@
 
 用户将通过中央服务器来登录、离线、查询好友通信IP，实际通信数据流通过Peer to Peer的隧道实现，不需要服务器参与。
 
+本次实验后端使用Python实现，前端使用PyQt5.
+
 本次实验我实现了如下功能：
 \begin{itemize}
     \item[\textbf{必做部分}] 
@@ -49,12 +51,20 @@
 
 \subsubsection{Sender}\label{sender}
 一个发送线程即一个面向目标IP的TCP套接字，成功建立连接后，该线程从缓存中不断取出从线程“路由”发来的数据，并根据数据格式和内容，首先将数据报报头通过套接字发送给目标端，等待ACK，接收到确认后将数据发送出去，表示为状态机如下：
-%TODO:
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{senderstate.png}
+    \caption{Sender状态机}
+\end{figure}
 
 
 \subsubsection{Listener}\label{listener}
 一个监听线程即一个绑定在本地的TCP监听套接字，本次实验使用本地的9876端口。每当监听到一个新的连接请求，将建立的TCP连接套接字和对应的数据接受功能放入新的线程运行，并重新回到监听状态，表示为状态机如下：
-
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.4]{listenerstate.png}
+    \caption{Listener状态机}
+\end{figure}
 
 \subsection{进程通信协议}\label{progress}
 所谓进程通信协议即用户与用户之间的数据通信协议，用于统一同一网络下的不同客户端之间的数据报格式。
