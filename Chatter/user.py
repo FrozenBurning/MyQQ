@@ -1,8 +1,11 @@
 from Chatter.router import *
 from GUI.mainwindow import *
+from utility.clientMedia import *
+from utility.serverMedia import *
 
 class user():
     #main thread
+
     def __init__(self):
         # self.contacts = set()
         self.myid = None
@@ -10,18 +13,20 @@ class user():
         self.database = None
         
         self.r = router()
+        
         # self.gui_worker=None
         # self.gui = MainWindow(self)
 
         # self.watchdog = ChatListener(self.r)
         # self.gui_worker = gui(self.r,self.gui)
         # self.r.attach(self.gui_worker)
-
+        self.mediaserver = MediaServer()
 
         app = QtWidgets.QApplication(sys.argv)
         dialog=logindialog()
         if  dialog.exec_()==QtWidgets.QDialog.Accepted:
             self.myid = dialog.lineEdit_account.text()
+            dialog.destroy()
             self.gui = MainWindow(self)   
             self.gui.show()
 
@@ -35,10 +40,11 @@ class user():
             self.r.start()
             self.watchdog.start()
             self.gui_worker.start()
+            self.mediaserver.start()
             # self.refresher = threading.Thread(name="uifresher",target=self.refresh,daemon=True)
             # self.refresher.start()
 
-            self.login(dialog.lineEdit_account.text())
+            self.login(self.myid)
 
             sys.exit(app.exec_())
 
@@ -81,7 +87,8 @@ class user():
             self.r.recv(str(command_type['hi'].value),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=friendid,command_tp=command_type['hi'].value)
             tmp=self.gui_worker.contacts[friendid][0]
             self.gui_worker.contacts[friendid]=(tmp,True)
-            self.gui.update_contacts()            
+            # self.gui.update_contacts()      
+            self.gui.updatecontact.emit() 
         return self.gui_worker.get_contact(friendid)
 
     def send_text(self, text,desid):
@@ -106,6 +113,14 @@ class user():
         else:
             return False
 
+    def send_video(self,desid):
+        if self.isOnline(desid):
+            self.r.recv(self.gui_worker.get_contact(desid),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=desid,command_tp=command_type['establish'].value)
+            self.r.recv("***videochat***",worker_type['gui'].value,worker_type['sender'].value,data['text'].value,desid)
+            # session = MediaClient(self.gui_worker.get_contact(desid))
+        else:
+            return False
+
 
     def groupchat(self,desidlist):
         pass
@@ -121,11 +136,15 @@ class gui_worker(threading.Thread):
         self.router = router
         self.worker_type = worker_type['gui'].value
         self.updating_contacts = False
+        self.canvideo = False
         self.buffer = []
         self.desid = 1
         self.current_des = None
         self.recent_msg = {}#dict of list
         self.guiwindow=gui
+        self.session = MediaClient()
+
+        self.lock = threading.Lock()
     
     def run(self):
         while True:
@@ -141,16 +160,18 @@ class gui_worker(threading.Thread):
             if not self.get_contact(current_msg['sender_type']):
                 if current_msg['data']==str(command_type['hi'].value):
                     #say hi dialog
-                    dialog = confirmfrienddialog(self,current_msg['sender_type'])
-                    if dialog.exec_() == QtWidgets.QDialog.Accepted:
-                        self.guiwindow.update_contacts()
-                    else:
-                        #TODO: need dual computer test
-                        self.router.recv(current_msg['sender_type'],worker_type['gui'].value,worker_type['toserver'].value,data['command'].value,command_tp=command_type['query'].value)
-                        time.sleep(0.1)
-                        self.router.recv(self.get_contact(current_msg['sender_type']),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=current_msg['sender_type'],command_tp=command_type['establish'].value)
-                        self.router.recv(str(command_type['reject'].value),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=current_msg['sender_type'],command_tp=command_type['reject'].value)
-
+                    self.guiwindow.confirmfriendsig.emit(current_msg['sender_type'])
+                    # dialog = confirmfrienddialog(self,current_msg['sender_type'])
+                    # if dialog.exec_() == QtWidgets.QDialog.Accepted:
+                    #     pass
+                    #     # self.guiwindow.update_contacts()
+                    # else:
+                    #     #TODO: need dual computer test
+                    #     self.router.recv(current_msg['sender_type'],worker_type['gui'].value,worker_type['toserver'].value,data['command'].value,command_tp=command_type['query'].value)
+                    #     time.sleep(0.1)
+                    #     self.router.recv(self.get_contact(current_msg['sender_type']),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=current_msg['sender_type'],command_tp=command_type['establish'].value)
+                    #     self.router.recv(str(command_type['reject'].value),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=current_msg['sender_type'],command_tp=command_type['reject'].value)
+                    # dialog.destroy()
                     
                 # self.updating_contacts = True
                 # self.router.recv(current_msg['sender_type'],worker_type['gui'].value,worker_type['toserver'].value,data['command'].value,command_tp=command_type['query'].value)
@@ -160,7 +181,7 @@ class gui_worker(threading.Thread):
             if current_msg['data']==str(command_type['reject'].value):
                 tmp=self.contacts[current_msg['sender_type']][0]
                 self.contacts[current_msg['sender_type']]=(tmp,False)
-                self.guiwindow.update_contacts()
+                self.guiwindow.updatecontact.emit() 
 
             #distribute msg to user interface
             if current_msg['data_type'] == data['file'].value:
@@ -168,12 +189,23 @@ class gui_worker(threading.Thread):
                 if self.recent_msg.get(current_msg['sender_type']) == None:
                     self.recent_msg[current_msg['sender_type']]=[]
                 self.recent_msg[current_msg['sender_type']].append(current_msg)
-                self.guiwindow.update_msg_window()
+                self.guiwindow.updatemsg.emit()
             elif current_msg['data_type'] == data['text'].value:
+                if current_msg['data']=="***videochat***":
+                    self.guiwindow.videocall.emit(current_msg['sender_type'])
+                    # dialog = confirmvideodialog(self,current_msg['sender_type'])
+                    # if dialog.exec_() == QtWidgets.QDialog.Accepted:
+                    print("video with",self.get_contact(current_msg['sender_type']))
+                    #     self.session=MediaClient(self.get_contact(current_msg['sender_type']))
+                    #     time.sleep(0.5)
+                    #     self.session.start()
+                    # else:
+                    #     continue
+                    # dialog.destroy()
                 if self.recent_msg.get(current_msg['sender_type']) == None:
                     self.recent_msg[current_msg['sender_type']]=[]
                 self.recent_msg[current_msg['sender_type']].append(current_msg)
-                self.guiwindow.update_msg_window()
+                self.guiwindow.updatemsg.emit()                
             else:#command
                 if current_msg['optional']['command_type']==command_type['logout'].value:
                     return
@@ -186,6 +218,7 @@ class gui_worker(threading.Thread):
             if ip != 'Incorrect login No.' and ip != 'Please send the correct message.':
                 tmp = self.contacts[id][1]
                 self.contacts[id] = (ip,tmp)
+        time.sleep(0.5)
         self.updating_contacts = False
 
     def get_contact(self,id):
@@ -200,10 +233,6 @@ class gui_worker(threading.Thread):
     def confirmfriend(self,id2confirm):
         self.updating_contacts = True
         self.router.recv(id2confirm,worker_type['gui'].value,worker_type['toserver'].value,data['command'].value,command_tp=command_type['query'].value)        
-        wallclk = 0
-        while self.updating_contacts:
-            wallclk +=1
-            if wallclk > 50000:
-                break
+        time.sleep(1)
         tmp = self.contacts[id2confirm][0]
         self.contacts[id2confirm]=(tmp,True)

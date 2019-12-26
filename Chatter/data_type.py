@@ -4,6 +4,7 @@ class data(Enum):
     command = 1
     text = 2
     file = 3
+    video = 4
 
 
 class worker_type(Enum):

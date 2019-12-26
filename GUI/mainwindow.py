@@ -2,9 +2,14 @@ import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 from GUI.ui_mainwindow import Ui_MainWindow
 from Chatter.data_type import *
-
+from utility.clientMedia import *
+import re
 class MainWindow(QtWidgets.QMainWindow):
     windowsList = []
+    updatecontact = QtCore.pyqtSignal()
+    updatemsg = QtCore.pyqtSignal()
+    confirmfriendsig = QtCore.pyqtSignal(str)
+    videocall = QtCore.pyqtSignal(str)
     def __init__(self,user_interface,parent=None, flags=QtCore.Qt.WindowFlags()):
         super().__init__(parent=parent, flags=flags)
         self.ui = Ui_MainWindow()
@@ -40,7 +45,33 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui.sendmsg.clicked.connect(self.send_msg)
         self.ui.contacts.itemSelectionChanged.connect(self.getcontactitems)
 
+        self.updatecontact.connect(self.update_contacts)
+        self.updatemsg.connect(self.update_msg_window)
+        self.confirmfriendsig.connect(self.confirmfriend)
+        self.videocall.connect(self.callvideoclient)
 
+    def callvideoclient(self,idfrom):
+        dialog =confirmvideodialog(self.user_interface.gui_worker,idfrom)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            # MediaClient(idfrom).start()
+            self.gui_worker.session.remote = self.gui_worker.get_contact(idfrom)
+            self.gui_worker.session.start()
+        else:
+            print("reject video call")
+        
+        dialog.destroy()
+        return
+
+    def confirmfriend(self,idfrom):
+        dialog = confirmfrienddialog(self.user_interface.gui_worker,idfrom)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            self.update_contacts()
+        else:
+            self.user_interface.router.recv(idfrom,worker_type['gui'].value,worker_type['toserver'].value,data['command'].value,command_tp=command_type['query'].value)
+            self.user_interface.router.recv(self.get_contact(idfrom),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=idfrom,command_tp=command_type['establish'].value)
+            self.user_interface.router.recv(str(command_type['reject'].value),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=idfrom,command_tp=command_type['reject'].value)
+        dialog.destroy()
+        return
 
     def getcontactitems(self):
         tmp=self.ui.contacts.selectedItems()
@@ -83,20 +114,29 @@ class MainWindow(QtWidgets.QMainWindow):
     
     def functionalchange(self,button):
         self.current_datatype = data[button.text()].value
+        print("current type",self.current_datatype)
     
     def send_msg(self):
-        if self.gui_worker.contacts[self.gui_worker.current_des][1] == False:
-            return
         if self.gui_worker.current_des == None:
-            return
-        if len(self.ui.editor.toPlainText()) == 0:
+            print("current des none")
+            return        
+        if self.gui_worker.contacts[self.gui_worker.current_des][1] == False:
+            print("contact not valid")
             return
         if self.current_datatype == data['text'].value:
+            if len(self.ui.editor.toPlainText()) == 0:
+                return
             self.user_interface.send_text(self.ui.editor.toPlainText(),self.gui_worker.current_des)
         elif self.current_datatype == data['file'].value:
             file_path = self.selectfile()
             if file_path != None:
                 self.user_interface.send_file(file_path,self.gui_worker.current_des)
+        elif self.current_datatype == data['video'].value:
+            #TODO: 
+            try:
+                self.user_interface.send_video(self.gui_worker.current_des)
+            except:
+                return
         
         self.update_msg_window()
 
@@ -150,17 +190,12 @@ class logindialog(QtWidgets.QDialog):
         self.setFixedSize(self.width(), self.height())
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
  
-        ###### 设置界面控件
         self.frame = QtWidgets.QFrame(self)
         self.verticalLayout = QtWidgets.QVBoxLayout(self.frame)
  
         self.lineEdit_account = QtWidgets.QLineEdit()
         self.lineEdit_account.setPlaceholderText("请输入账号")
         self.verticalLayout.addWidget(self.lineEdit_account)
- 
-        self.lineEdit_password = QtWidgets.QLineEdit()
-        self.lineEdit_password.setPlaceholderText("请输入密码")
-        self.verticalLayout.addWidget(self.lineEdit_password)
  
         self.pushButton_enter = QtWidgets.QPushButton()
         self.pushButton_enter.setText("确定")
@@ -170,7 +205,6 @@ class logindialog(QtWidgets.QDialog):
         self.pushButton_quit.setText("取消")
         self.verticalLayout.addWidget(self.pushButton_quit)
  
-        ###### 绑定按钮事件
         self.pushButton_enter.clicked.connect(self.on_pushButton_enter_clicked)
         self.pushButton_quit.clicked.connect(QtCore.QCoreApplication.instance().quit)
  
@@ -178,15 +212,10 @@ class logindialog(QtWidgets.QDialog):
  
  
     def on_pushButton_enter_clicked(self):
-        #TODO: normalized judgment
-        if self.lineEdit_account.text() == "":
+        tmp = self.lineEdit_account.text()
+        if re.search(r'^[2-3][0][1][7]\d{6}',tmp) == None:
             return
  
-        # 密码判断
-        if self.lineEdit_password.text() == "":
-            return
- 
-        # 通过验证，关闭对话框并返回1
         self.accept()
     
  
@@ -219,9 +248,13 @@ class addfrienddialog(QtWidgets.QDialog):
         self.pushButton_quit.clicked.connect(self.close)
 
     def on_pushButton_enter_clicked(self):
-        tmp = self.interface.addfriends(self.lineEdit_account.text())
+        try:
+            tmp = self.interface.addfriends(self.lineEdit_account.text())
+        except:
+            print("no such person")
+            tmp == None
         if tmp == None:
-            QtWidgets.QMessageBox().warning(self,"提醒","No Such Person!")
+            QtWidgets.QMessageBox().warning(self,"提醒","No Such Person or rejected!")
         else:
             QtWidgets.QMessageBox().information(self,"提示","Successfully Added!")
         
@@ -258,6 +291,43 @@ class confirmfrienddialog(QtWidgets.QDialog):
 
     def on_pushButton_enter_clicked(self):
         self.interface.confirmfriend(self.id2confirm)  
+        self.accept()
+
+    def close(self):
+        # self.interface.rejectfriend(self.id2confirm)
+        self.reject()
+
+class confirmvideodialog(QtWidgets.QDialog):
+    def __init__(self,gui_worker,desid):
+        super().__init__()
+        self.setWindowTitle('请求视频')
+        self.resize(160, 150)
+        self.setFixedSize(self.width(), self.height())
+        self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
+        self.interface = gui_worker
+        self.id2confirm = desid
+
+        ###### 设置界面控件
+        self.frame = QtWidgets.QFrame(self)
+        self.verticalLayout = QtWidgets.QVBoxLayout(self.frame)
+
+        self.account = QtWidgets.QLabel()
+        self.account.setText("对方学号："+self.id2confirm)
+        self.verticalLayout.addWidget(self.account)
+ 
+        self.pushButton_enter = QtWidgets.QPushButton()
+        self.pushButton_enter.setText("接受")
+        self.verticalLayout.addWidget(self.pushButton_enter)
+ 
+        self.pushButton_quit = QtWidgets.QPushButton()
+        self.pushButton_quit.setText("拒绝")
+        self.verticalLayout.addWidget(self.pushButton_quit)
+
+        self.pushButton_enter.clicked.connect(self.on_pushButton_enter_clicked)
+        self.pushButton_quit.clicked.connect(self.close)
+
+    def on_pushButton_enter_clicked(self):
+        # self.interface.confirmvideo(self.id2confirm)  
         self.accept()
 
     def close(self):
