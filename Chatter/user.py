@@ -121,6 +121,9 @@ class user():
         else:
             return False
 
+    def quitvideocall(self):
+        self.gui_worker.session.working=False
+        self.gui_worker.session = MediaClient()
 
     def groupchat(self,desidlist):
         pass

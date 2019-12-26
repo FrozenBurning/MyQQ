@@ -49,10 +49,10 @@ class MediaServer(Thread):
                 self.serverAudio.listen(1)
                 self.serverVideo.listen(1)
                 print("waiting connection...")
-                # try:
-                #     cv2.destroyAllWindows()
-                # except:
-                #     pass
+                try:
+                    plt.close()
+                except:
+                    pass
                 self.clientAudio,self.addraudio = self.serverAudio.accept()
                 self.clientVideo,self.addrvideo = self.serverVideo.accept()
                 print("accept connection @",self.addrvideo)
@@ -85,16 +85,6 @@ class MediaServer(Thread):
             except:
                 time.sleep(5)
 
-    def SendAudio(self):
-        while self.working:
-            data = self.audiostream.read(CHUNK)
-            dataChunk = array('h', data)
-            vol = max(dataChunk)
-            if(vol > 500):
-                print("Recording Sound...")
-            else:
-                print("Silence..")
-            self.clientAudio.sendall(data)
 
     def RecieveAudio(self):
         while True:
@@ -117,31 +107,6 @@ class MediaServer(Thread):
                 databytes += self.clientAudio.recv(to_read)
         return databytes
 
-    def SendFrame(self):
-        while self.working:
-            try:
-                frame = self.videostream.read()
-                cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                frame = cv2.resize(frame, (640, 480))
-                frame = np.array(frame, dtype = np.uint8).reshape(1, lnF)
-                jpg_as_text = bytearray(frame)
-
-                databytes = zlib.compress(jpg_as_text, 9)
-                length = struct.pack('!I', len(databytes))
-                bytesToBeSend = b''
-                self.clientVideo.sendall(length)
-                while len(databytes) > 0:
-                    if (5000 * CHUNK) <= len(databytes):
-                        bytesToBeSend = databytes[:(5000 * CHUNK)]
-                        databytes = databytes[(5000 * CHUNK):]
-                        self.clientVideo.sendall(bytesToBeSend)
-                    else:
-                        bytesToBeSend = databytes
-                        self.clientVideo.sendall(bytesToBeSend)
-                        databytes = b''
-                print("##### Data Sent!! #####")
-            except:
-                continue
 
 
     def RecieveFrame(self):
@@ -156,8 +121,8 @@ class MediaServer(Thread):
                     databytes = self.recvallVideo(length)
                     img = zlib.decompress(databytes)
                     if len(databytes) == length:
-                        print("Recieving Media..")
-                        print("Image Frame Size:- {}".format(len(img)))
+                        # print("Recieving Media..")
+                        # print("Image Frame Size:- {}".format(len(img)))
                         img = np.array(list(img))
                         img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
                         plt.imshow(img)

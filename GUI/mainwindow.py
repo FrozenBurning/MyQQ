@@ -24,7 +24,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.functional_group.addButton(self.ui.text_send,0)
         self.functional_group.addButton(self.ui.file_send,1)
         self.functional_group.addButton(self.ui.video_send,2)
-        self.functional_group.addButton(self.ui.pushButton_5,3)
 
 
         self.ui.contacts.setStyleSheet("QListWidget{border:1px solid gray; color:black; }"
@@ -44,16 +43,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.functional_group.buttonClicked.connect(self.functionalchange)
         self.ui.sendmsg.clicked.connect(self.send_msg)
         self.ui.contacts.itemSelectionChanged.connect(self.getcontactitems)
+        self.ui.quitvideo.clicked.connect(self.quitvideocall)
 
         self.updatecontact.connect(self.update_contacts)
         self.updatemsg.connect(self.update_msg_window)
         self.confirmfriendsig.connect(self.confirmfriend)
         self.videocall.connect(self.callvideoclient)
 
+    def quitvideocall(self):
+        self.user_interface.quitvideocall()
+        self.ui.quitvideo.setEnabled(False)
+        return
+
     def callvideoclient(self,idfrom):
         dialog =confirmvideodialog(self.user_interface.gui_worker,idfrom)
         if dialog.exec_() == QtWidgets.QDialog.Accepted:
             # MediaClient(idfrom).start()
+            self.ui.quitvideo.setEnabled(True)
             self.gui_worker.session.remote = self.gui_worker.get_contact(idfrom)
             self.gui_worker.session.start()
         else:

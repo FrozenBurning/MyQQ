@@ -7,7 +7,7 @@ from threading import Thread
 import numpy as np
 import zlib
 import struct
-
+import time
 # REMOTEHOST = input("Enter Server IP\n")
 PORT4VIDEO = 3000
 PORT4AUDIO = 4000
@@ -33,7 +33,8 @@ class MediaClient(Thread):
         except OSError:
             print("Server video port Refuse")
             return
-        self.videostream = WebcamVideoStream(0).start()
+        # self.videostream = WebcamVideoStream(0).start()
+        self.videostream = cv2.VideoCapture(0)
 
         try:
             self.clientAudioSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -41,7 +42,7 @@ class MediaClient(Thread):
         except OSError:
             print("Server audio port refuse")
             return 
-        
+        time.sleep(1)
         self.audio=pyaudio.PyAudio()
         try:
             self.audiostream=self.audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True,frames_per_buffer=CHUNK)
@@ -71,7 +72,8 @@ class MediaClient(Thread):
             if(vol > 500):
                 print("Recording Sound...")
             else:
-                print("Silence..")
+                pass
+                # print("Silence..")
             try:
                 self.clientAudioSocket.sendall(data)
             except:
@@ -80,26 +82,11 @@ class MediaClient(Thread):
         self.clientAudioSocket.close()
         self.audiostream.close()
 
-    def RecieveAudio(self):
-        while self.working:
-            data = self.recvallAudio(BufferSize)
-            self.audiostream.write(data)
-
-
-    def recvallAudio(self,size):
-        databytes = b''
-        while len(databytes) != size:
-            to_read = size - len(databytes)
-            if to_read > (4 * CHUNK):
-                databytes += self.clientAudioSocket.recv(4 * CHUNK)
-            else:
-                databytes += self.clientAudioSocket.recv(to_read)
-        return databytes
 
     def SendFrame(self):
         while self.working:
             try:
-                frame = self.videostream.read()
+                (grab,frame) = self.videostream.read()
                 cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 frame = cv2_im
                 frame = cv2.resize(frame, (640, 480))
@@ -138,42 +125,8 @@ class MediaClient(Thread):
             except:
                 continue
         self.clientVideoSocket.close()
-        self.videostream.stop()
+        self.videostream.release()
         
-
-
-    def RecieveFrame(self):
-        while self.working:
-            try:
-                lengthbuf = self.recvallVideo(4)
-                length, = struct.unpack('!I', lengthbuf)
-                databytes = self.recvallVideo(length)
-                img = zlib.decompress(databytes)
-                if len(databytes) == length:
-                    print("Recieving Media..")
-                    print("Image Frame Size:- {}".format(len(img)))
-                    img = np.array(list(img))
-                    img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
-                    cv2.imshow("Received Video", img)
-                    if cv2.waitKey(1) == 27:
-                        cv2.destroyAllWindows()
-                else:
-                    print("Data CORRUPTED")
-            except:
-                continue
-
-
-
-    def recvallVideo(self,size):
-        databytes = b''
-        while len(databytes) != size:
-            to_read = size - len(databytes)
-            if to_read > (5000 * CHUNK):
-                databytes += self.clientVideoSocket.recv(5000 * CHUNK)
-            else:
-                databytes += self.clientVideoSocket.recv(to_read)
-        return databytes
-
 
 # c = MediaClient("127.0.0.1")
 # c.start()
