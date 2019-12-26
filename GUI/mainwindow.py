@@ -260,7 +260,7 @@ class addfrienddialog(QtWidgets.QDialog):
             print("no such person")
             tmp == None
         if tmp == None:
-            QtWidgets.QMessageBox().warning(self,"提醒","No Such Person or rejected!")
+            QtWidgets.QMessageBox().warning(self,"提醒","Not Online or Rejected!")
         else:
             QtWidgets.QMessageBox().information(self,"提示","Successfully Added!")
         

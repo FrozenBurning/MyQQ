@@ -1,6 +1,5 @@
 import cv2
 import socket
-from imutils.video import WebcamVideoStream
 import pyaudio
 from array import array
 from threading import Thread
@@ -10,9 +9,9 @@ import struct
 import time
 import matplotlib.pyplot as plt
 import queue
-# HOST = input("Enter Host IP\n")
-PORT4VIDEO = 3000
-PORT4AUDIO = 4000
+
+PORT4VIDEO = 3333
+PORT4AUDIO = 4444
 
 
 BufferSize = 4096
@@ -37,13 +36,13 @@ class MediaServer(Thread):
             self.serverVideo.bind(("0.0.0.0", PORT4VIDEO))
         except OSError:
             print("Server Busy")        
-        self.RecieveFrameThread = Thread(name='recframe',target=self.RecieveFrame,daemon=True)
-        self.RecieveAudioThread = Thread(name='recaudio',target=self.RecieveAudio,daemon=True)
+        self.ReceivingFrameThread = Thread(name='recframe',target=self.RecieveFrame,daemon=True)
+        self.ReceivingAudioThread = Thread(name='recaudio',target=self.RecieveAudio,daemon=True)
 
     
     def run(self):
-        self.RecieveFrameThread.start()
-        self.RecieveAudioThread.start()
+        self.ReceivingFrameThread.start()
+        self.ReceivingAudioThread.start()
         while True:
             try:
                 self.serverAudio.listen(1)
@@ -69,8 +68,8 @@ class MediaServer(Thread):
                 # SendFrameThread = Thread(target=self.SendFrame).start()
                 # SendAudioThread = Thread(target=self.SendAudio).start()
 
-                # self.RecieveFrameThread.join()
-                # self.RecieveAudioThread.join()
+                # self.ReceivingFrameThread.join()
+                # self.ReceivingAudioThread.join()
                 while self.working:
                     time.sleep(1)
                 #     print(self.video.qsize())
@@ -142,7 +141,7 @@ class MediaServer(Thread):
             else:
                 time.sleep(1)
                 # print("receive frame thread end")
-                cv2.destroyAllWindows()
+                # cv2.destroyAllWindows()
                 # cv2.waitKey(100)
         return
 
@@ -168,24 +167,3 @@ class MediaServer(Thread):
             timer+=1
         return databytes
         
-
-
-# m = MediaServer()
-# m.start()
-# # cv2.namedWindow("Receive Video")
-
-# while True:
-
-#     print("get img!")
-#     try:
-#         img = m.video.get(block=True,timeout=3)
-#     except:
-#         cv2.destroyAllWindows()
-#         continue
-#     print("size:",np.size(img))
-#     cv2.imshow("Receive Video",img)
-#     if cv2.waitKey(30)==27:
-#         # self.videostream.stop()
-#         print("ESC Pressed!")
-#         m.working = False        
-#         time.sleep(2)

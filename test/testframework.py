@@ -1,5 +1,4 @@
 from Chatter.user import *
-file_path = '/home/royubuntu/ComputerNetwork/MyQQ/alabama.jpg'
 
 u = user()
 # while True:

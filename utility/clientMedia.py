@@ -1,6 +1,5 @@
 import cv2
 import socket
-from imutils.video import WebcamVideoStream
 import pyaudio
 from array import array
 from threading import Thread
@@ -8,9 +7,9 @@ import numpy as np
 import zlib
 import struct
 import time
-# REMOTEHOST = input("Enter Server IP\n")
-PORT4VIDEO = 3000
-PORT4AUDIO = 4000
+
+PORT4VIDEO = 3333
+PORT4AUDIO = 4444
 
 BufferSize = 4096
 CHUNK=1024
@@ -33,7 +32,6 @@ class MediaClient(Thread):
         except OSError:
             print("Server video port Refuse")
             return
-        # self.videostream = WebcamVideoStream(0).start()
         self.videostream = cv2.VideoCapture(0)
 
         try:
@@ -59,8 +57,6 @@ class MediaClient(Thread):
                 SendAudioThread.start()
                 SendFrameThread.join()
                 SendAudioThread.join()
-                # RecieveFrameThread = Thread(target=self.RecieveFrame).start()
-                # RecieveAudioThread = Thread(target=self.RecieveAudio).start()
         
 
 
@@ -92,7 +88,6 @@ class MediaClient(Thread):
                 frame = cv2.resize(frame, (640, 480))
                 frame = np.array(frame, dtype = np.uint8).reshape(1, lnF)
                 jpg_as_text = bytearray(frame)
-
                 databytes = zlib.compress(jpg_as_text, 9)
                 length = struct.pack('!I', len(databytes))
                 bytesToBeSend = b''
@@ -121,14 +116,8 @@ class MediaClient(Thread):
                             self.working=False
                             break
                         databytes = b''
-                print("##### Data Sent!! #####")
             except:
                 continue
         self.clientVideoSocket.close()
         self.videostream.release()
         
-
-# c = MediaClient("127.0.0.1")
-# c.start()
-# input("something")
-# c.working=False
