@@ -5,31 +5,38 @@ from utility.connectiontool import *
 import queue
 from contextlib import contextmanager
 
-
+#线程“路由”
 class router(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
+        # 消息池
         self.messagepool = queue.Queue()
+        # 订阅者集合，即所有的consumer
         self._subscribers = set()
         self.sok2server = ConnectionTool()
         self.working = True
         self.myid = None
 
     def run(self):
+        # 一直执行路由
         self.sok2server.ConnectionInit()
         while self.working:
             self.routing()
 
+    # 接入一个consumer
     def attach(self, task):
         self._subscribers.add(task)
 
+    #注销一个consumer
     def detach(self, task):
         self._subscribers.remove(task)
 
+    # 供外部producter调用
     def recv(self,data, sender_type,recver_type,data_type,destination=None,command_tp=None):
         msg = self.inner_data_wrapper(data,sender_type,recver_type,data_type,destination,command_tp)
         self.messagepool.put(msg)
 
+    # 路由核心
     def routing(self):
         current_msg = self.messagepool.get(block=True)
         #commanding
@@ -106,6 +113,7 @@ class router(threading.Thread):
                         subscriber.send(current_msg)
         self.messagepool.task_done()
 
+    #deprecated
     @contextmanager
     def subscribe(self, *tasks):
         for task in tasks:
@@ -117,6 +125,7 @@ class router(threading.Thread):
             for task in tasks:
                 self.detach(task)
 
+    # 内部线程间数据报封装
     def inner_data_wrapper(self, data2trans, sender_type,recver_type,data_type,destination=None,command_tp=None):
         more = {
             'destination':None,

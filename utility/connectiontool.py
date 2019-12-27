@@ -1,5 +1,5 @@
 import socket
-
+# 与中央服务器的连接工具
 class ConnectionTool:
     def __init__(self):
         self.ServerIP = "166.111.140.57"
@@ -14,6 +14,7 @@ class ConnectionTool:
         address = (self.ServerIP,self.ServerPort)
         self.SocketHandler.connect(address)
     
+    # 发送命令模板
     def SendCommand(self,command):
         self.SocketHandler.send(command.encode())
 

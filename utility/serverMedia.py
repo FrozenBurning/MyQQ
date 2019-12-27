@@ -10,10 +10,11 @@ import time
 import matplotlib.pyplot as plt
 import queue
 
+# 音视频监听端口
 PORT4VIDEO = 3333
 PORT4AUDIO = 4444
 
-
+# 音视频动态参数
 BufferSize = 4096
 CHUNK=1024
 lnF = 640*480*3
@@ -24,27 +25,35 @@ RATE=44100
 class MediaServer(Thread):
     def __init__(self):
         Thread.__init__(self,daemon=True)
+        #工作标志
         self.working = False
+        #deprecated
         self.video = queue.Queue()
+        #音频socket
         self.serverAudio = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.serverAudio.bind(("0.0.0.0", PORT4AUDIO))
         except OSError:
             print("Server Busy")
+
+        #视频socket
         self.serverVideo = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.serverVideo.bind(("0.0.0.0", PORT4VIDEO))
         except OSError:
-            print("Server Busy")        
+            print("Server Busy")     
+        # 创建接受音视频流线程，但不开始   
         self.ReceivingFrameThread = Thread(name='recframe',target=self.RecieveFrame,daemon=True)
         self.ReceivingAudioThread = Thread(name='recaudio',target=self.RecieveAudio,daemon=True)
 
     
     def run(self):
+        #一直运行
         self.ReceivingFrameThread.start()
         self.ReceivingAudioThread.start()
         while True:
             try:
+                # 监听连接请求
                 self.serverAudio.listen(1)
                 self.serverVideo.listen(1)
                 print("waiting connection...")
@@ -52,39 +61,37 @@ class MediaServer(Thread):
                     plt.close()
                 except:
                     pass
+                # 新建socket服务对应连接
                 self.clientAudio,self.addraudio = self.serverAudio.accept()
                 self.clientVideo,self.addrvideo = self.serverVideo.accept()
                 print("accept connection @",self.addrvideo)
+                # 开始工作
                 self.working=True
-                # self.videostream = WebcamVideoStream(0).start()
+
+                # 硬件准备
                 self.audio=pyaudio.PyAudio()
                 try:
                     self.audiostream=self.audio.open(format=FORMAT,channels=CHANNELS, rate=RATE,output = True,frames_per_buffer=CHUNK)
                 except:
-                    print("fucking damn audio card!")
-                # cv2.startWindowThread()
-                # cv2.namedWindow("Receive Video")
-                self.clientVideo.send("start".encode())
-                # SendFrameThread = Thread(target=self.SendFrame).start()
-                # SendAudioThread = Thread(target=self.SendAudio).start()
+                    print("audio card cant output!")
 
-                # self.ReceivingFrameThread.join()
-                # self.ReceivingAudioThread.join()
+                #发送开始标志
+                self.clientVideo.send("start".encode())
+
+                # 监听线程进入等待 直到当前的音视频服务结束
                 while self.working:
                     time.sleep(1)
-                #     print(self.video.qsize())
-                #     img = self.video.get(block=True)
-                #     cv2.imshow("Receive Video",img)
-                # print("working",self.working)
-                # time.sleep(5)
 
+                #回收服务socket 重启设备
                 self.clientAudio.close()
                 self.clientVideo.close()
                 self.audiostream.close()
+
+                # 监听线程重新回到监听状态 等待下一次音视频流连接请求
             except:
                 time.sleep(5)
 
-
+    # 接受音频
     def RecieveAudio(self):
         while True:
             if self.working:
@@ -92,10 +99,12 @@ class MediaServer(Thread):
                 try:
                     self.audiostream.write(data)
                 except OSError:
-                    print("receive audio thread end")
+                    print("receive audio thread reset")
                     continue
             else:
                 time.sleep(1)
+    
+    # 音频分块接受
     def recvallAudio(self,size):
         databytes = b''
         while len(databytes) != size and self.working:
@@ -107,7 +116,7 @@ class MediaServer(Thread):
         return databytes
 
 
-
+    # 接受视频
     def RecieveFrame(self):
         plt.figure(1)
         # handler = plt.imshow(np.zeros((480,640,3)))
@@ -115,13 +124,15 @@ class MediaServer(Thread):
         while True:
             if self.working:
                 try:
+                    # 接受当前帧长度
                     lengthbuf = self.recvallVideo(4)
                     length, = struct.unpack('!I', lengthbuf)
+                    # 根据长度开辟内存接受帧
                     databytes = self.recvallVideo(length)
+                    # 解压缩
                     img = zlib.decompress(databytes)
                     if len(databytes) == length:
-                        # print("Recieving Media..")
-                        # print("Image Frame Size:- {}".format(len(img)))
+                        # 去序列化
                         img = np.array(list(img))
                         img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
                         plt.imshow(img)
@@ -145,12 +156,13 @@ class MediaServer(Thread):
                 # cv2.waitKey(100)
         return
 
-
+    # 分块接收单一视频帧
     def recvallVideo(self,size):
         databytes = b''
         timer = 0
         while len(databytes) != size and self.working:
             # print(timer)
+            # 连接超时判据 重置servermedia服务
             if timer >  50000:
                 # self.videostream.stop()
                 self.audiostream.close()
