@@ -34,6 +34,7 @@ Latex source code at [report.tex](report/report.tex)
 - 音视频发送 [clientMedia.py](utility/clientMedia.py)
 - 音视频监听及接受 [serverMedia.py](utility/serverMedia.py)
 - 数据协议的某些字段定义 [data_type.py](Chatter/data_type.py)
+- 用户界面 [mainwindow.py](GUI/mainwindow.py)
 - 程序入口 [main.py](main.py)
 
 
