@@ -17,8 +17,10 @@ class ConnectionTool:
     # 发送命令模板
     def SendCommand(self,command):
         self.SocketHandler.send(command.encode())
+        print("send to server:",command)
 
         reply = self.SocketHandler.recv(512)
+        print("server Reply:",reply)
         return reply.decode()
 
     def Login(self,StudentNum):

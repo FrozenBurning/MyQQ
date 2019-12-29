@@ -91,6 +91,7 @@ class router(threading.Thread):
                         subscriber.send(current_msg)
                         self.detach(subscriber)
             elif current_msg['data']==str(command_type['hi'].value):
+                print("recv say hi!")
                 for subscriber in self._subscribers:
                     if subscriber.worker_type == worker_type['gui'].value:
                         subscriber.send(current_msg)

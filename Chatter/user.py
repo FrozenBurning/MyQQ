@@ -86,6 +86,7 @@ class user():
             if wallclk > 50000:
                 break
         #send vertify request
+        time.sleep(1)
         if self.isOnline(friendid):
             self.r.recv(self.gui_worker.get_contact(friendid),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=friendid,command_tp=command_type['establish'].value)            
             self.r.recv(str(command_type['hi'].value),worker_type['gui'].value,worker_type['sender'].value,data['command'].value,destination=friendid,command_tp=command_type['hi'].value)
@@ -215,6 +216,7 @@ class gui_worker(threading.Thread):
             if ip != 'Incorrect login No.' and ip != 'Please send the correct message.':
                 tmp = self.contacts[id][1]
                 self.contacts[id] = (ip,tmp)
+        print(self.contacts)
         time.sleep(0.5)
         self.updating_contacts = False
     # 获得通讯录中某一好友IP
@@ -231,5 +233,8 @@ class gui_worker(threading.Thread):
         self.updating_contacts = True
         self.router.recv(id2confirm,worker_type['gui'].value,worker_type['toserver'].value,data['command'].value,command_tp=command_type['query'].value)        
         time.sleep(1)
-        tmp = self.contacts[id2confirm][0]
-        self.contacts[id2confirm]=(tmp,True)
+        try:
+            tmp = self.contacts[id2confirm][0]
+            self.contacts[id2confirm]=(tmp,True)
+        except:
+            print("Key Error!")
