@@ -70,6 +70,7 @@ Python3相关版本均可，不支持Python2
 可执行文件在/dist目录下，运行如下指令:
 ```bash
 cd path-to-project
+运行前可能需要给权限: chmod +x ./dist/main
 ./dist/main
 ```
 
